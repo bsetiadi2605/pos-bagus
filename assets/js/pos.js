@@ -1,3 +1,6 @@
+const { authenticate } = require('./form-login')
+const { formatUang, ellipsisText } = require('./helper')
+
 let cart = [];
 let index = 0;
 let allUsers = [];
@@ -32,7 +35,8 @@ let dotInterval = setInterval(function () { $(".dot").text('.') }, 3000);
 let Store = require('electron-store');
 const remote = require('electron').remote;
 const app = remote.app;
-let img_path = app.getPath('appData') + '/POS/uploads/';
+//let img_path = app.getPath('appData') + '/POS/uploads/';
+let img_path = process.env.APPDATA + '/POS/uploads/';
 let api = 'http://' + host + ':' + port + '/api/';
 let btoa = require('btoa');
 let jsPDF = require('jspdf');
@@ -45,8 +49,6 @@ let customerOrderList = [];
 let ownUserEdit = null;
 let totalPrice = 0;
 let orderTotal = 0;
-let auth_error = 'Incorrect username or password';
-let auth_empty = 'Please enter a username and password';
 let holdOrderlocation = $("#randerHoldOrders");
 let customerOrderLocation = $("#randerCustomerOrders");
 let storage = new Store();
@@ -77,13 +79,13 @@ $(function () {
         timePickerSeconds: true,
         // minDate: '',
         ranges: {
-            'Today': [moment().startOf('day'), moment()],
-            'Yesterday': [moment().subtract(1, 'days').startOf('day'), moment().subtract(1, 'days').endOf('day')],
-            'Last 7 Days': [moment().subtract(6, 'days').startOf('day'), moment().endOf('day')],
-            'Last 30 Days': [moment().subtract(29, 'days').startOf('day'), moment().endOf('day')],
-            'This Month': [moment().startOf('month'), moment().endOf('month')],
-            'This Month': [moment().startOf('month'), moment()],
-            'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+            'Hari ini': [moment().startOf('day'), moment()],
+            'Kemarin': [moment().subtract(1, 'days').startOf('day'), moment().subtract(1, 'days').endOf('day')],
+            '7 Hari Terakhir': [moment().subtract(6, 'days').startOf('day'), moment().endOf('day')],
+            '30 Hari Terakhir': [moment().subtract(29, 'days').startOf('day'), moment().endOf('day')],
+            'Bulan Ini': [moment().startOf('month'), moment().endOf('month')],
+            'Awal Bulan Ini': [moment().startOf('month'), moment()],
+            'Bulan Kemarin': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
         }
     }, cb);
 
@@ -202,7 +204,7 @@ if (auth == undefined) {
             $.get(api + 'inventory/products', function (data) {
 
                 data.forEach(item => {
-                    item.price = parseFloat(item.price).toFixed(2);
+                    item.price = parseFloat(item.price);
                 });
 
                 allProducts = [...data];
@@ -212,6 +214,7 @@ if (auth == undefined) {
                 $('#parent').text('');
                 $('#categories').html(`<button type="button" id="all" class="btn btn-categories btn-white waves-effect waves-light">All</button> `);
 
+                console.log("data", data)
                 data.forEach(item => {
 
                     if (!categories.includes(item.category)) {
@@ -223,10 +226,11 @@ if (auth == undefined) {
                             <div class="widget-panel widget-style-2 ">                    
                             <div id="image"><img src="${item.img == "" ? "./assets/images/default.jpg" : img_path + item.img}" id="product_img" alt=""></div>                    
                                         <div class="text-muted m-t-5 text-center">
-                                        <div class="name" id="product_name">${item.name}</div> 
-                                        <span class="sku">${item.sku}</span>
-                                        <span class="stock">STOCK </span><span class="count">${item.stock == 1 ? item.quantity : 'N/A'}</span></div>
-                                        <sp class="text-success text-center"><b data-plugin="counterup">${settings.symbol + item.price}</b> </sp>
+                                            <div class="name" id="product_name">${item.name}</div> 
+                                            <span class="stok codeName">${item.code}</span>
+                                            ${item.stock == 1 ? '<span class="stock">STOCK </span><span class="count">${item.quantity}</span>' : ''}
+                                        </div>
+                                        <sp class="text-success text-center"><b data-plugin="counterup">${settings.symbol} ${formatUang(item.price)}</b> </sp>
                             </div>
                         </div>`;
                     $('#parent').append(item_info);
@@ -261,7 +265,7 @@ if (auth == undefined) {
 
             $.get(api + 'customers/all', function (customers) {
 
-                $('#customer').html(`<option value="0" selected="selected">Walk in customer</option>`);
+                $('#customer').html(`<option value="0" selected="selected">Pelanggan Umum</option>`);
 
                 customers.forEach(cust => {
 
@@ -324,7 +328,7 @@ if (auth == undefined) {
 
                     if (data._id != undefined && data.quantity >= 1) {
                         $(this).addProductToCart(data);
-                        $("#searchBarCode").get(0).reset();
+                        //$("#searchBarCode").get(0).reset();
                         $("#basic-addon2").empty();
                         $("#basic-addon2").append(
                             $('<i>', { class: 'glyphicon glyphicon-ok' })
@@ -345,7 +349,7 @@ if (auth == undefined) {
                             'warning'
                         );
 
-                        $("#searchBarCode").get(0).reset();
+                        //$("#searchBarCode").get(0).reset();
                         $("#basic-addon2").empty();
                         $("#basic-addon2").append(
                             $('<i>', { class: 'glyphicon glyphicon-ok' })
@@ -378,9 +382,9 @@ if (auth == undefined) {
         }
 
 
-        $("#searchBarCode").on('submit', function (e) {
-            barcodeSearch(e);
-        });
+        // $("#searchBarCode").on('submit', function (e) {
+        //     barcodeSearch(e);
+        // });
 
 
 
@@ -399,7 +403,8 @@ if (auth == undefined) {
                 product_name: data.name,
                 sku: data.sku,
                 price: data.price,
-                quantity: 1
+                quantity: 1,
+                code: data.code
             };
 
             if ($(this).isExist(item)) {
@@ -436,7 +441,7 @@ if (auth == undefined) {
                 total += data.quantity * data.price;
             });
             total = total - $("#inputDiscount").val();
-            $('#price').text(settings.symbol + total.toFixed(2));
+            $('#price').text(settings.symbol+' '+formatUang(total));
 
             subTotal = total;
 
@@ -453,9 +458,9 @@ if (auth == undefined) {
                 grossTotal = total;
             }
 
-            orderTotal = grossTotal.toFixed(2);
+            orderTotal = grossTotal;
 
-            $("#gross_price").text(settings.symbol + grossTotal.toFixed(2));
+            $("#gross_price").text(settings.symbol+' '+formatUang(grossTotal));
             $("#payablePrice").val(grossTotal);
         };
 
@@ -465,10 +470,11 @@ if (auth == undefined) {
             $('#cartTable > tbody').empty();
             $(this).calculateCart();
             $.each(cartList, function (index, data) {
+                console.log(data)
                 $('#cartTable > tbody').append(
                     $('<tr>').append(
                         $('<td>', { text: index + 1 }),
-                        $('<td>', { text: data.product_name }),
+                        $('<td>', { text: `${data.code} ${data.product_name}` }),
                         $('<td>').append(
                             $('<div>', { class: 'input-group' }).append(
                                 $('<div>', { class: 'input-group-btn btn-xs' }).append(
@@ -480,7 +486,7 @@ if (auth == undefined) {
                                     )
                                 ),
                                 $('<input>', {
-                                    class: 'form-control',
+                                    class: 'form-control qty-input',
                                     type: 'number',
                                     value: data.quantity,
                                     onInput: '$(this).qtInput(' + index + ')'
@@ -495,7 +501,7 @@ if (auth == undefined) {
                                 )
                             )
                         ),
-                        $('<td>', { text: settings.symbol + (data.price * data.quantity).toFixed(2) }),
+                        $('<td>', { text: settings.symbol +' '+ formatUang(data.price * data.quantity) }),
                         $('<td>').append(
                             $('<button>', {
                                 class: 'btn btn-danger btn-xs',
@@ -635,17 +641,19 @@ if (auth == undefined) {
 
             cart.forEach(item => {
 
-                items += "<tr><td>" + item.product_name + "</td><td>" + item.quantity + "</td><td>" + settings.symbol + parseFloat(item.price).toFixed(2) + "</td></tr>";
+                items += "<tr><td>" + item.product_name + "</td><td>" + item.quantity + "</td><td>" + settings.symbol +' '+formatUang(item.price) + "</td></tr>";
 
             });
 
             let currentTime = new Date(moment());
 
+            console.log($("#customer").val())
+
             let discount = $("#inputDiscount").val();
             let customer = JSON.parse($("#customer").val());
             let date = moment(currentTime).format("YYYY-MM-DD HH:mm:ss");
-            let paid = $("#payment").val() == "" ? "" : parseFloat($("#payment").val()).toFixed(2);
-            let change = $("#change").text() == "" ? "" : parseFloat($("#change").text()).toFixed(2);
+            let paid = $("#payment").val() == "" ? "" : parseFloat($("#payment").val());
+            let change = $("#change").text() == "" ? "" : parseFloat($("#change").text());
             let refNumber = $("#refNumber").val();
             let orderNumber = holdOrder;
             let type = "";
@@ -669,12 +677,12 @@ if (auth == undefined) {
                 payment = `<tr>
                         <td>Paid</td>
                         <td>:</td>
-                        <td>${settings.symbol + paid}</td>
+                        <td>${settings.symbol +' '+ formatUang(paid)}</td>
                     </tr>
                     <tr>
                         <td>Change</td>
                         <td>:</td>
-                        <td>${settings.symbol + Math.abs(change).toFixed(2)}</td>
+                        <td>${settings.symbol +' '+ formatUang(Math.abs(change))}</td>
                     </tr>
                     <tr>
                         <td>Method</td>
@@ -689,7 +697,7 @@ if (auth == undefined) {
                 tax_row = `<tr>
                     <td>Vat(${settings.percentage})% </td>
                     <td>:</td>
-                    <td>${settings.symbol}${parseFloat(totalVat).toFixed(2)}</td>
+                    <td>${settings.symbol} ${formatUang(totalVat)}</td>
                 </tr>`;
             }
 
@@ -737,7 +745,7 @@ if (auth == undefined) {
             <p>
             Order No : ${orderNumber} <br>
             Ref No : ${refNumber == "" ? orderNumber : refNumber} <br>
-            Customer : ${customer == 0 ? 'Walk in customer' : customer.name} <br>
+            Customer : ${customer == 0 ? 'Pelanggan Umum' : customer.name} <br>
             Cashier : ${user.fullname} <br>
             Date : ${date}<br>
             </p>
@@ -758,12 +766,12 @@ if (auth == undefined) {
             <tr>                        
                 <td><b>Subtotal</b></td>
                 <td>:</td>
-                <td><b>${settings.symbol}${subTotal.toFixed(2)}</b></td>
+                <td><b>${settings.symbol} ${formatUang(subTotal)}</b></td>
             </tr>
             <tr>
                 <td>Discount</td>
                 <td>:</td>
-                <td>${discount > 0 ? settings.symbol + parseFloat(discount).toFixed(2) : ''}</td>
+                <td>${discount > 0 ? settings.symbol +' '+ formatUang(discount) : ''}</td>
             </tr>
             
             ${tax_row}
@@ -772,7 +780,7 @@ if (auth == undefined) {
                 <td><h3>Total</h3></td>
                 <td><h3>:</h3></td>
                 <td>
-                    <h3>${settings.symbol}${parseFloat(orderTotal).toFixed(2)}</h3>
+                    <h3>${settings.symbol} ${formatUang(orderTotal)}</h3>
                 </td>
             </tr>
             ${payment == 0 ? '' : payment}
@@ -810,7 +818,7 @@ if (auth == undefined) {
                 discount: discount,
                 customer: customer,
                 status: status,
-                subtotal: parseFloat(subTotal).toFixed(2),
+                subtotal: parseFloat(subTotal),
                 tax: totalVat,
                 order_type: 1,
                 items: cart,
@@ -891,17 +899,17 @@ if (auth == undefined) {
                         $('<a>').append(
                             $('<div>', { class: 'card-box order-box' }).append(
                                 $('<p>').append(
-                                    $('<b>', { text: 'Ref :' }),
+                                    $('<b>', { text: 'No Meja : ' }),
                                     $('<span>', { text: order.ref_number, class: 'ref_number' }),
                                     $('<br>'),
-                                    $('<b>', { text: 'Price :' }),
-                                    $('<span>', { text: order.total, class: "label label-info", style: 'font-size:14px;' }),
+                                    $('<b>', { text: 'Total :'}),
+                                    $('<span>', { text: `Rp ${formatUang(order.total)}`, class: "label", style: 'font-size:14px;' }),
+                                    // $('<br>'),
+                                    // $('<b>', { text: 'Item : ' }),
+                                    // $('<span>', { text: order.items.length }),
                                     $('<br>'),
-                                    $('<b>', { text: 'Items :' }),
-                                    $('<span>', { text: order.items.length }),
-                                    $('<br>'),
-                                    $('<b>', { text: 'Customer :' }),
-                                    $('<span>', { text: order.customer != 0 ? order.customer.name : 'Walk in customer', class: 'customer_name' })
+                                    $('<b>', { text: 'Pelanggan : ' }),
+                                    $('<span>', { text: order.customer != 0 ? order.customer.name : 'Umum', class: 'customer_name' })
                                 ),
                                 $('<button>', { class: 'btn btn-danger del', onclick: '$(this).deleteOrder(' + index + ',' + orderType + ')' }).append(
                                     $('<i>', { class: 'fa fa-trash' })
@@ -942,7 +950,7 @@ if (auth == undefined) {
                 $("#customer option:selected").removeAttr('selected');
 
                 $("#customer option").filter(function () {
-                    return $(this).text() == "Walk in customer";
+                    return $(this).text() == "Pelanggan Umum";
                 }).prop("selected", true);
 
                 holdOrder = holdOrderList[index]._id;
@@ -1506,11 +1514,20 @@ if (auth == undefined) {
                 });
 
 
-                product_list += `<tr>
+                 /* product_list += `<tr>
             <td><img id="`+ product._id + `"></td>
             <td><img style="max-height: 50px; max-width: 50px; border: 1px solid #ddd;" src="${product.img == "" ? "./assets/images/default.jpg" : img_path + product.img}" id="product_img"></td>
             <td>${product.name}</td>
-            <td>${settings.symbol}${product.price}</td>
+            <td>${settings.symbol} ${formatUang(product.price)}</td>
+            <td>${product.stock == 1 ? product.quantity : 'N/A'}</td>
+            <td>${category.length > 0 ? category[0].name : ''}</td>
+            <td class="nobr"><span class="btn-group"><button onClick="$(this).editProduct(${index})" class="btn btn-warning btn-sm"><i class="fa fa-edit"></i></button><button onClick="$(this).deleteProduct(${product._id})" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></button></span></td></tr>`; 
+            */
+
+                product_list += `<tr>
+            <td><img style="max-height: 50px; max-width: 50px; border: 1px solid #ddd;" src="${product.img == "" ? "./assets/images/default.jpg" : img_path + product.img}" id="product_img"></td>
+            <td>${product.name}</td>
+            <td>${settings.symbol} ${formatUang(product.price)}</td>
             <td>${product.stock == 1 ? product.quantity : 'N/A'}</td>
             <td>${category.length > 0 ? category[0].name : ''}</td>
             <td class="nobr"><span class="btn-group"><button onClick="$(this).editProduct(${index})" class="btn btn-warning btn-sm"><i class="fa fa-edit"></i></button><button onClick="$(this).deleteProduct(${product._id})" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></button></span></td></tr>`;
@@ -1699,8 +1716,6 @@ if (auth == undefined) {
             e.preventDefault();
             let formData = $(this).serializeObject();
 
-            console.log(formData);
-
             if (ownUserEdit) {
                 if (formData.password != atob(user.password)) {
                     if (formData.password != formData.pass) {
@@ -1713,7 +1728,7 @@ if (auth == undefined) {
                 }
             }
             else {
-                if (formData.password != atob(allUsers[user_index].password)) {
+                if (formData.password) {
                     if (formData.password != formData.pass) {
                         Swal.fire(
                             'Oops!',
@@ -1724,43 +1739,37 @@ if (auth == undefined) {
                 }
             }
 
+            $.ajax({
+                url: api + 'users/post',
+                type: 'POST',
+                data: JSON.stringify(formData),
+                contentType: 'application/json; charset=utf-8',
+                cache: false,
+                processData: false,
+                success: function (data) {
 
-
-            if (formData.password == atob(user.password) || formData.password == atob(allUsers[user_index].password) || formData.password == formData.pass) {
-                $.ajax({
-                    url: api + 'users/post',
-                    type: 'POST',
-                    data: JSON.stringify(formData),
-                    contentType: 'application/json; charset=utf-8',
-                    cache: false,
-                    processData: false,
-                    success: function (data) {
-
-                        if (ownUserEdit) {
-                            ipcRenderer.send('app-reload', '');
-                        }
-
-                        else {
-                            $('#userModal').modal('hide');
-
-                            loadUserList();
-
-                            $('#Users').modal('show');
-                            Swal.fire(
-                                'Ok!',
-                                'User details saved!',
-                                'success'
-                            );
-                        }
-
-
-                    }, error: function (data) {
-                        console.log(data);
+                    if (ownUserEdit) {
+                        ipcRenderer.send('app-reload', '');
                     }
 
-                });
+                    else {
+                        $('#userModal').modal('hide');
 
-            }
+                        loadUserList();
+
+                        $('#Users').modal('show');
+                        Swal.fire(
+                            'Ok!',
+                            'User details saved!',
+                            'success'
+                        );
+                    }
+
+                }, error: function (data) {
+                    console.log(data);
+                }
+
+            });
 
         });
 
@@ -1974,9 +1983,9 @@ function loadTransactions() {
                 transaction_list += `<tr>
                                 <td>${trans.order}</td>
                                 <td class="nobr">${moment(trans.date).format('YYYY MMM DD hh:mm:ss')}</td>
-                                <td>${settings.symbol + trans.total}</td>
-                                <td>${trans.paid == "" ? "" : settings.symbol + trans.paid}</td>
-                                <td>${trans.change ? settings.symbol + Math.abs(trans.change).toFixed(2) : ''}</td>
+                                <td>${settings.symbol +' '+ formatUang(trans.total)}</td>
+                                <td>${trans.paid == "" ? "" : settings.symbol +' '+ formatUang(trans.paid)}</td>
+                                <td>${trans.change ? settings.symbol +' '+ formatUang(Math.abs(trans.change)) : ''}</td>
                                 <td>${trans.paid == "" ? "" : trans.payment_type == 0 ? "Cash" : 'Card'}</td>
                                 <td>${trans.till}</td>
                                 <td>${trans.user}</td>
@@ -1985,7 +1994,7 @@ function loadTransactions() {
 
                 if (counter == transactions.length) {
 
-                    $('#total_sales #counter').text(settings.symbol + parseFloat(sales).toFixed(2));
+                    $('#total_sales #counter').text(settings.symbol +' '+ formatUang(sales));
                     $('#total_transactions #counter').text(transact);
 
                     const result = {};
@@ -2088,7 +2097,7 @@ function loadSoldProducts() {
             <td>${item.product}</td>
             <td>${item.qty}</td>
             <td>${product[0].stock == 1 ? product.length > 0 ? product[0].quantity : '' : 'N/A'}</td>
-            <td>${settings.symbol + (item.qty * parseFloat(item.price)).toFixed(2)}</td>
+            <td>${settings.symbol +' '+ formatUang(item.qty * parseFloat(item.price))}</td>
             </tr>`;
 
         if (counter == sold.length) {
@@ -2101,6 +2110,8 @@ function loadSoldProducts() {
 
 
 function userFilter(users) {
+
+    console.log(users)
 
     $('#users').empty();
     $('#users').append(`<option value="0">All</option>`);
@@ -2132,7 +2143,7 @@ $.fn.viewTransaction = function (index) {
     transaction_index = index;
 
     let discount = allTransactions[index].discount;
-    let customer = allTransactions[index].customer == 0 ? 'Walk in Customer' : allTransactions[index].customer.username;
+    let customer = allTransactions[index].customer == 0 ? 'Pelanggan Umum' : allTransactions[index].customer.username;
     let refNumber = allTransactions[index].ref_number != "" ? allTransactions[index].ref_number : allTransactions[index].order;
     let orderNumber = allTransactions[index].order;
     let type = "";
@@ -2141,7 +2152,7 @@ $.fn.viewTransaction = function (index) {
     let products = allTransactions[index].items;
 
     products.forEach(item => {
-        items += "<tr><td>" + item.product_name + "</td><td>" + item.quantity + "</td><td>" + settings.symbol + parseFloat(item.price).toFixed(2) + "</td></tr>";
+        items += "<tr><td>" + item.product_name + "</td><td>" + item.quantity + "</td><td>" + settings.symbol +' '+ formatUang(item.price) + "</td></tr>";
 
     });
 
@@ -2160,12 +2171,12 @@ $.fn.viewTransaction = function (index) {
         payment = `<tr>
                     <td>Paid</td>
                     <td>:</td>
-                    <td>${settings.symbol + allTransactions[index].paid}</td>
+                    <td>${settings.symbol +' '+ formatUang(allTransactions[index].paid)}</td>
                 </tr>
                 <tr>
                     <td>Change</td>
                     <td>:</td>
-                    <td>${settings.symbol + Math.abs(allTransactions[index].change).toFixed(2)}</td>
+                    <td>${settings.symbol +' '+ formatUang(Math.abs(allTransactions[index].change))}</td>
                 </tr>
                 <tr>
                     <td>Method</td>
@@ -2180,7 +2191,7 @@ $.fn.viewTransaction = function (index) {
         tax_row = `<tr>
                 <td>Vat(${settings.percentage})% </td>
                 <td>:</td>
-                <td>${settings.symbol}${parseFloat(allTransactions[index].tax).toFixed(2)}</td>
+                <td>${settings.symbol} ${formatUang(allTransactions[index].tax)}</td>
             </tr>`;
     }
 
@@ -2200,7 +2211,7 @@ $.fn.viewTransaction = function (index) {
         <p>
         Invoice : ${orderNumber} <br>
         Ref No : ${refNumber} <br>
-        Customer : ${allTransactions[index].customer == 0 ? 'Walk in Customer' : allTransactions[index].customer.name} <br>
+        Customer : ${allTransactions[index].customer == 0 ? 'Pelanggan Umum' : allTransactions[index].customer.name} <br>
         Cashier : ${allTransactions[index].user} <br>
         Date : ${moment(allTransactions[index].date).format('DD MMM YYYY HH:mm:ss')}<br>
         </p>
@@ -2221,12 +2232,12 @@ $.fn.viewTransaction = function (index) {
         <tr>                        
             <td><b>Subtotal</b></td>
             <td>:</td>
-            <td><b>${settings.symbol}${allTransactions[index].subtotal}</b></td>
+            <td><b>${settings.symbol} ${formatUang(allTransactions[index].subtotal)}</b></td>
         </tr>
         <tr>
             <td>Discount</td>
             <td>:</td>
-            <td>${discount > 0 ? settings.symbol + parseFloat(allTransactions[index].discount).toFixed(2) : ''}</td>
+            <td>${discount > 0 ? settings.symbol +' '+ formatUang(allTransactions[index].discount) : ''}</td>
         </tr>
         
         ${tax_row}
@@ -2235,7 +2246,7 @@ $.fn.viewTransaction = function (index) {
             <td><h3>Total</h3></td>
             <td><h3>:</h3></td>
             <td>
-                <h3>${settings.symbol}${allTransactions[index].total}</h3>
+                <h3>${settings.symbol} ${formatUang(allTransactions[index].total)}</h3>
             </td>
         </tr>
         ${payment == 0 ? '' : payment}
@@ -2289,67 +2300,15 @@ $('#reportrange').on('apply.daterangepicker', function (ev, picker) {
 });
 
 
-function authenticate() {
-    $('#loading').append(
-        `<div id="load"><form id="account"><div class="form-group"><input type="text" placeholder="Username" name="username" class="form-control"></div>
-        <div class="form-group"><input type="password" placeholder="Password" name="password" class="form-control"></div>
-        <div class="form-group"><input type="submit" class="btn btn-block btn-default" value="Login"></div></form>`
-    );
-}
-
-
-$('body').on("submit", "#account", function (e) {
-    e.preventDefault();
-    let formData = $(this).serializeObject();
-
-    if (formData.username == "" || formData.password == "") {
-
-        Swal.fire(
-            'Incomplete form!',
-            auth_empty,
-            'warning'
-        );
-    }
-    else {
-
-        $.ajax({
-            url: api + 'users/login',
-            type: 'POST',
-            data: JSON.stringify(formData),
-            contentType: 'application/json; charset=utf-8',
-            cache: false,
-            processData: false,
-            success: function (data) {
-                if (data._id) {
-                    storage.set('auth', { auth: true });
-                    storage.set('user', data);
-                    ipcRenderer.send('app-reload', '');
-                }
-                else {
-                    Swal.fire(
-                        'Oops!',
-                        auth_error,
-                        'warning'
-                    );
-                }
-
-            }, error: function (data) {
-                console.log(data);
-            }
-        });
-    }
-});
-
-
 $('#quit').click(function () {
     Swal.fire({
-        title: 'Are you sure?',
-        text: "You are about to close the application.",
+        title: 'Anda yakin ?',
+        text: "Anda ingin keluar dari aplikasi",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Close Application'
+        confirmButtonText: 'Keluar'
     }).then((result) => {
 
         if (result.value) {

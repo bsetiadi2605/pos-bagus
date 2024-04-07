@@ -36,7 +36,6 @@ color: #FFFFFF;
 
 #product_img {
   max-height: 80px;
-  border-radius: 50%;
   max-width: 100px;
 }
 
@@ -61,8 +60,6 @@ margin-right: 30px;
 }
 
 #product_name {
-  height: 40px;
-  overflow: hidden;
   border-bottom: 1px solid #f1f1f1;
 }
 
@@ -241,4 +238,8 @@ margin-right: 30px;
   margin-top: 10px;
   font-size: 32px;
   width: 100%;
+}
+
+.qty-input {
+  width: 70px !important;
 }

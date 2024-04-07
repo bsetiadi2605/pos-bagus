@@ -17,9 +17,9 @@ $(document).ready(function(){
  
     function searchProducts () {        
         $("#categories .btn-categories").removeClass("active");
-        var matcher = new RegExp($("#search").val(), 'gi');
+        var matcher = new RegExp($("#search").val(), 'i');
         $('.box').show().not(function(){
-            return matcher.test($(this).find('.name, .sku').text())
+            return matcher.test($(this).find('.name, .codeName').text())
         }).hide();
     }
 

@@ -29,6 +29,8 @@ let inventoryDB = new Datastore( {
     autoload: true
 } );
 
+console.log("inventoryDB", inventoryDB)
+
 
 inventoryDB.ensureIndex({ fieldName: '_id', unique: true });
 
@@ -93,6 +95,7 @@ app.post( "/product", upload.single('imagename'), function ( req, res ) {
         category: req.body.category,
         quantity: req.body.quantity == "" ? 0 : req.body.quantity,
         name: req.body.name,
+        code: req.body.code,
         stock: req.body.stock == "on" ? 0 : 1,    
         img: image        
     }
