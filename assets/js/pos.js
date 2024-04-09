@@ -1,6 +1,3 @@
-const { authenticate } = require('./form-login')
-const { formatUang, ellipsisText } = require('./helper')
-
 let cart = [];
 let index = 0;
 let allUsers = [];
@@ -62,6 +59,9 @@ let end_date = moment(end).toDate();
 let by_till = 0;
 let by_user = 0;
 let by_status = 1;
+
+let auth_error = 'Incorrect username or password';
+let auth_empty = 'Please enter a username and password';
 
 $(function () {
 
@@ -214,7 +214,6 @@ if (auth == undefined) {
                 $('#parent').text('');
                 $('#categories').html(`<button type="button" id="all" class="btn btn-categories btn-white waves-effect waves-light">All</button> `);
 
-                console.log("data", data)
                 data.forEach(item => {
 
                     if (!categories.includes(item.category)) {
@@ -226,8 +225,8 @@ if (auth == undefined) {
                             <div class="widget-panel widget-style-2 ">                    
                             <div id="image"><img src="${item.img == "" ? "./assets/images/default.jpg" : img_path + item.img}" id="product_img" alt=""></div>                    
                                         <div class="text-muted m-t-5 text-center">
-                                            <div class="name" id="product_name">${item.name}</div> 
-                                            <span class="stok codeName">${item.code}</span>
+                                            <div class="name" id="product_name"><b>${item.name}</b></div> 
+                                            <span class="stok codeName"><b>${item.code}</b></span>
                                             ${item.stock == 1 ? '<span class="stock">STOCK </span><span class="count">${item.quantity}</span>' : ''}
                                         </div>
                                         <sp class="text-success text-center"><b data-plugin="counterup">${settings.symbol} ${formatUang(item.price)}</b> </sp>
@@ -647,8 +646,6 @@ if (auth == undefined) {
 
             let currentTime = new Date(moment());
 
-            console.log($("#customer").val())
-
             let discount = $("#inputDiscount").val();
             let customer = JSON.parse($("#customer").val());
             let date = moment(currentTime).format("YYYY-MM-DD HH:mm:ss");
@@ -726,7 +723,7 @@ if (auth == undefined) {
                 method = 'PUT'
             }
             else {
-                orderNumber = Math.floor(Date.now() / 1000);
+                orderNumber = Date.now();
                 method = 'POST'
             }
 
@@ -960,6 +957,7 @@ if (auth == undefined) {
                         id: product.id,
                         product_name: product.product_name,
                         sku: product.sku,
+                        code: product.code,
                         price: product.price,
                         quantity: product.quantity
                     };
@@ -983,6 +981,7 @@ if (auth == undefined) {
                         id: product.id,
                         product_name: product.product_name,
                         sku: product.sku,
+                        code: product.code,
                         price: product.price,
                         quantity: product.quantity
                     };
@@ -1980,17 +1979,27 @@ function loadTransactions() {
                 }
 
                 counter++;
+                // transaction_list += `<tr>
+                //                 <td>${trans.order}</td>
+                //                 <td class="nobr">${moment(trans.date).format('YYYY MMM DD hh:mm:ss')}</td>
+                //                 <td>${settings.symbol +' '+ formatUang(trans.total)}</td>
+                //                 <td>${trans.paid == "" ? "" : settings.symbol +' '+ formatUang(trans.paid)}</td>
+                //                 <td>${trans.change ? settings.symbol +' '+ formatUang(Math.abs(trans.change)) : ''}</td>
+                //                 <td>${trans.paid == "" ? "" : trans.payment_type == 0 ? "Cash" : 'Card'}</td>
+                //                 <td>${trans.till}</td>
+                //                 <td>${trans.user}</td>
+                //                 <td>${trans.paid == "" ? '<button class="btn btn-dark"><i class="fa fa-search-plus"></i></button>' : '<button onClick="$(this).viewTransaction(' + index + ')" class="btn btn-info"><i class="fa fa-search-plus"></i></button></td>'}</tr>
+                //     `;
+                
                 transaction_list += `<tr>
-                                <td>${trans.order}</td>
-                                <td class="nobr">${moment(trans.date).format('YYYY MMM DD hh:mm:ss')}</td>
-                                <td>${settings.symbol +' '+ formatUang(trans.total)}</td>
-                                <td>${trans.paid == "" ? "" : settings.symbol +' '+ formatUang(trans.paid)}</td>
-                                <td>${trans.change ? settings.symbol +' '+ formatUang(Math.abs(trans.change)) : ''}</td>
-                                <td>${trans.paid == "" ? "" : trans.payment_type == 0 ? "Cash" : 'Card'}</td>
-                                <td>${trans.till}</td>
-                                <td>${trans.user}</td>
-                                <td>${trans.paid == "" ? '<button class="btn btn-dark"><i class="fa fa-search-plus"></i></button>' : '<button onClick="$(this).viewTransaction(' + index + ')" class="btn btn-info"><i class="fa fa-search-plus"></i></button></td>'}</tr>
-                    `;
+                            <td>${trans.order}</td>
+                            <td class="nobr">${moment(trans.date).format('YYYY MMM DD hh:mm:ss')}</td>
+                            <td>${settings.symbol +' '+ formatUang(trans.total)}</td>
+                            <td>${trans.paid == "" ? "" : settings.symbol +' '+ formatUang(trans.paid)}</td>
+                            <td>${trans.change ? settings.symbol +' '+ formatUang(Math.abs(trans.change)) : ''}</td>
+                            <td>${trans.user}</td>
+                            <td>${trans.paid == "" ? '<button class="btn btn-dark"><i class="fa fa-search-plus"></i></button>' : '<button onClick="$(this).viewTransaction(' + index + ')" class="btn btn-info"><i class="fa fa-search-plus"></i></button></td>'}</tr>
+                `;
 
                 if (counter == transactions.length) {
 
@@ -2143,7 +2152,7 @@ $.fn.viewTransaction = function (index) {
     transaction_index = index;
 
     let discount = allTransactions[index].discount;
-    let customer = allTransactions[index].customer == 0 ? 'Pelanggan Umum' : allTransactions[index].customer.username;
+    let customer = allTransactions[index].customer == 0 ? 'Umum' : allTransactions[index].customer.username;
     let refNumber = allTransactions[index].ref_number != "" ? allTransactions[index].ref_number : allTransactions[index].order;
     let orderNumber = allTransactions[index].order;
     let type = "";
@@ -2177,19 +2186,19 @@ $.fn.viewTransaction = function (index) {
                     <td>Change</td>
                     <td>:</td>
                     <td>${settings.symbol +' '+ formatUang(Math.abs(allTransactions[index].change))}</td>
-                </tr>
-                <tr>
-                    <td>Method</td>
-                    <td>:</td>
-                    <td>${type}</td>
                 </tr>`
+                // <tr>
+                //     <td>Method</td>
+                //     <td>:</td>
+                //     <td>${type}</td>
+                // </tr>`
     }
 
 
 
     if (settings.charge_tax) {
         tax_row = `<tr>
-                <td>Vat(${settings.percentage})% </td>
+                <td>Service (${settings.percentage})% </td>
                 <td>:</td>
                 <td>${settings.symbol} ${formatUang(allTransactions[index].tax)}</td>
             </tr>`;
@@ -2197,23 +2206,84 @@ $.fn.viewTransaction = function (index) {
 
 
 
-    receipt = `<div style="font-size: 10px;">                            
+    // receipt = `<div style="font-size: 10px;">                            
+    //     <p style="text-align: center;">
+    //     ${settings.img == "" ? settings.img : '<img style="max-width: 50px;max-width: 100px;" src ="' + img_path + settings.img + '" /><br>'}
+    //         <span style="font-size: 22px;">${settings.store}</span> <br>
+    //         ${settings.address_one} <br>
+    //         ${settings.address_two} <br>
+    //         ${settings.contact != '' ? 'Tel: ' + settings.contact + '<br>' : ''} 
+    //         ${settings.tax != '' ? 'Vat No: ' + settings.tax + '<br>' : ''} 
+    // </p>
+    // <hr>
+    // <left>
+    //     <p>
+    //     Invoice : ${orderNumber} <br>
+    //     Ref No : ${refNumber} <br>
+    //     Customer : ${allTransactions[index].customer == 0 ? 'Umum' : allTransactions[index].customer.name} <br>
+    //     Cashier : ${allTransactions[index].user} <br>
+    //     Date : ${moment(allTransactions[index].date).format('DD MMM YYYY HH:mm:ss')}<br>
+    //     </p>
+
+    // </left>
+    // <hr>
+    // <table width="100%">
+    //     <thead style="text-align: left;">
+    //     <tr>
+    //         <th>Item</th>
+    //         <th>Qty</th>
+    //         <th>Price</th>
+    //     </tr>
+    //     </thead>
+    //     <tbody>
+    //     ${items}                
+ 
+    //     <tr>                        
+    //         <td><b>Subtotal</b></td>
+    //         <td>:</td>
+    //         <td><b>${settings.symbol} ${formatUang(allTransactions[index].subtotal)}</b></td>
+    //     </tr>
+    //     <tr>
+    //         <td>Discount</td>
+    //         <td>:</td>
+    //         <td>${discount > 0 ? settings.symbol +' '+ formatUang(allTransactions[index].discount) : ''}</td>
+    //     </tr>
+        
+    //     ${tax_row}
+    
+    //     <tr>
+    //         <td><h3>Total</h3></td>
+    //         <td><h3>:</h3></td>
+    //         <td>
+    //             <h3>${settings.symbol} ${formatUang(allTransactions[index].total)}</h3>
+    //         </td>
+    //     </tr>
+    //     ${payment == 0 ? '' : payment}
+    //     </tbody>
+    //     </table>
+    //     <br>
+    //     <hr>
+    //     <br>
+    //     <p style="text-align: center;">
+    //      ${settings.footer}
+    //      </p>
+    //     </div>`;
+
+        receipt = `<div style="font-size: 10px;">                            
         <p style="text-align: center;">
         ${settings.img == "" ? settings.img : '<img style="max-width: 50px;max-width: 100px;" src ="' + img_path + settings.img + '" /><br>'}
             <span style="font-size: 22px;">${settings.store}</span> <br>
             ${settings.address_one} <br>
             ${settings.address_two} <br>
             ${settings.contact != '' ? 'Tel: ' + settings.contact + '<br>' : ''} 
-            ${settings.tax != '' ? 'Vat No: ' + settings.tax + '<br>' : ''} 
     </p>
     <hr>
     <left>
         <p>
         Invoice : ${orderNumber} <br>
-        Ref No : ${refNumber} <br>
-        Customer : ${allTransactions[index].customer == 0 ? 'Pelanggan Umum' : allTransactions[index].customer.name} <br>
+        Customer : ${allTransactions[index].customer == 0 ? 'Umum' : allTransactions[index].customer.name} <br>
         Cashier : ${allTransactions[index].user} <br>
-        Date : ${moment(allTransactions[index].date).format('DD MMM YYYY HH:mm:ss')}<br>
+        Date : ${moment(allTransactions[index].date).format('DD MMMM YYYY HH:mm:ss')}<br>
         </p>
 
     </left>
@@ -2221,14 +2291,19 @@ $.fn.viewTransaction = function (index) {
     <table width="100%">
         <thead style="text-align: left;">
         <tr>
-            <th>Item</th>
-            <th>Qty</th>
-            <th>Price</th>
+            <th style="width:50%">Item</th>
+            <th style="width:20%">Qty</th>
+            <th style="width:30%">Price</th>
         </tr>
         </thead>
         <tbody>
         ${items}                
  
+        <tr>
+            <td><br></td>
+            <td></td>
+            <td></td>
+        </tr>
         <tr>                        
             <td><b>Subtotal</b></td>
             <td>:</td>
@@ -2243,10 +2318,10 @@ $.fn.viewTransaction = function (index) {
         ${tax_row}
     
         <tr>
-            <td><h3>Total</h3></td>
-            <td><h3>:</h3></td>
+            <td><h5>Total</h5></td>
+            <td><h5>:</h5></td>
             <td>
-                <h3>${settings.symbol} ${formatUang(allTransactions[index].total)}</h3>
+                <h5>${settings.symbol} ${formatUang(allTransactions[index].total)}</h5>
             </td>
         </tr>
         ${payment == 0 ? '' : payment}
@@ -2317,4 +2392,78 @@ $('#quit').click(function () {
     });
 });
 
+function authenticate() {
+    $('#loading').append(
+        `<div id="load"><form id="account"><div class="form-group"><input type="text" placeholder="Username" name="username" class="form-control"></div>
+        <div class="form-group"><input type="password" placeholder="Password" name="password" class="form-control"></div>
+        <div class="form-group"><input type="submit" class="btn btn-block btn-default" value="Login"></div></form>`
+    );
+}
+
+
+$('body').on("submit", "#account", function (e) {
+    e.preventDefault();
+    let formData = $(this).serializeObject();
+
+    if (formData.username == "" || formData.password == "") {
+
+        Swal.fire(
+            'Incomplete form!',
+            auth_empty,
+            'warning'
+        );
+    }
+    else {
+
+        $.ajax({
+            url: api + 'users/login',
+            type: 'POST',
+            data: JSON.stringify(formData),
+            contentType: 'application/json; charset=utf-8',
+            cache: false,
+            processData: false,
+            success: function (data) {
+                if (data._id) {
+                    storage.set('auth', { auth: true });
+                    storage.set('user', data);
+                    ipcRenderer.send('app-reload', '');
+                }
+                else {
+                    Swal.fire(
+                        'Oops!',
+                        auth_error,
+                        'warning'
+                    );
+                }
+
+            }, error: function (data) {
+                console.log(data);
+            }
+        });
+    }
+});
+
+function formatUang(angka){
+    var number_string = angka.toString(),
+    split   		= number_string.split(','),
+    sisa     		= split[0].length % 3,
+    rupiah     		= split[0].substr(0, sisa),
+    ribuan     		= split[0].substr(sisa).match(/\d{3}/gi);
+
+    // tambahkan titik jika yang di input sudah menjadi angka ribuan
+    if(ribuan){
+        separator = sisa ? '.' : '';
+        rupiah += separator + ribuan.join('.');
+    }
+
+    return rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
+}
+
+function ellipsisText(value, length){
+    let textElipsis = value;
+    if (value.length > length) {
+        textElipsis = value.substring(0, length) + ' ...';
+    }
+    return textElipsis;
+}
 

@@ -101,7 +101,7 @@ app.post( "/product", upload.single('imagename'), function ( req, res ) {
     }
 
     if(req.body.id == "") { 
-        Product._id = Math.floor(Date.now() / 1000);
+        Product._id = Date.now();
         inventoryDB.insert( Product, function ( err, product ) {
             if ( err ) res.status( 500 ).send( err );
             else res.send( product );

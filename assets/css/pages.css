@@ -17,7 +17,7 @@
   display: block; 
   height: calc(100vh - 215px);
   overflow: auto;
-  overflow: hidden;
+  overflow: scroll;
 }
 
 
@@ -60,11 +60,14 @@ margin-right: 30px;
 }
 
 #product_name {
+  height: 70px;
   border-bottom: 1px solid #f1f1f1;
+  color: black;
 }
 
 .stock {
   font-size: 11px;
+  color: black;
 }
 
 .sku {
