@@ -680,19 +680,19 @@ if (auth == undefined) {
                         <td>Change</td>
                         <td>:</td>
                         <td>${settings.symbol +' '+ formatUang(Math.abs(change))}</td>
-                    </tr>
-                    <tr>
-                        <td>Method</td>
-                        <td>:</td>
-                        <td>${type}</td>
                     </tr>`
+                    // <tr>
+                    //     <td>Method</td>
+                    //     <td>:</td>
+                    //     <td>${type}</td>
+                    // </tr>`
             }
 
 
 
             if (settings.charge_tax) {
                 tax_row = `<tr>
-                    <td>Vat(${settings.percentage})% </td>
+                    <td>Service (${settings.percentage})% </td>
                     <td>:</td>
                     <td>${settings.symbol} ${formatUang(totalVat)}</td>
                 </tr>`;
@@ -728,20 +728,17 @@ if (auth == undefined) {
             }
 
 
-            receipt = `<div style="font-size: 10px;">                            
+            receipt = `<div style="font-size: 8px;">                            
         <p style="text-align: center;">
         ${settings.img == "" ? settings.img : '<img style="max-width: 50px;max-width: 100px;" src ="' + img_path + settings.img + '" /><br>'}
-            <span style="font-size: 22px;">${settings.store}</span> <br>
             ${settings.address_one} <br>
             ${settings.address_two} <br>
-            ${settings.contact != '' ? 'Tel: ' + settings.contact + '<br>' : ''} 
-            ${settings.tax != '' ? 'Vat No: ' + settings.tax + '<br>' : ''} 
+            ${settings.contact != '' ? 'Tel: ' + settings.contact + '<br>' : ''}
         </p>
         <hr>
         <left>
             <p>
             Order No : ${orderNumber} <br>
-            Ref No : ${refNumber == "" ? orderNumber : refNumber} <br>
             Customer : ${customer == 0 ? 'Pelanggan Umum' : customer.name} <br>
             Cashier : ${user.fullname} <br>
             Date : ${date}<br>
@@ -752,14 +749,19 @@ if (auth == undefined) {
         <table width="100%">
             <thead style="text-align: left;">
             <tr>
-                <th>Item</th>
-                <th>Qty</th>
-                <th>Price</th>
+                <th width="50%">Item</th>
+                <th width="15%">Qty</th>
+                <th width="35%">Price</th>
             </tr>
             </thead>
             <tbody>
             ${items}                
      
+            <tr>
+                <td><br></td>
+                <td></td>
+                <td></td>
+            </tr>
             <tr>                        
                 <td><b>Subtotal</b></td>
                 <td>:</td>
@@ -774,10 +776,10 @@ if (auth == undefined) {
             ${tax_row}
         
             <tr>
-                <td><h3>Total</h3></td>
-                <td><h3>:</h3></td>
+                <td><h4>Total</h4></td>
+                <td><h4>:</h4></td>
                 <td>
-                    <h3>${settings.symbol} ${formatUang(orderTotal)}</h3>
+                    <h4>${settings.symbol} ${formatUang(orderTotal)}</h4>
                 </td>
             </tr>
             ${payment == 0 ? '' : payment}
@@ -2269,10 +2271,9 @@ $.fn.viewTransaction = function (index) {
     //      </p>
     //     </div>`;
 
-        receipt = `<div style="font-size: 10px;">                            
+        receipt = `<div style="font-size: 8px;">                            
         <p style="text-align: center;">
         ${settings.img == "" ? settings.img : '<img style="max-width: 50px;max-width: 100px;" src ="' + img_path + settings.img + '" /><br>'}
-            <span style="font-size: 22px;">${settings.store}</span> <br>
             ${settings.address_one} <br>
             ${settings.address_two} <br>
             ${settings.contact != '' ? 'Tel: ' + settings.contact + '<br>' : ''} 
@@ -2292,8 +2293,8 @@ $.fn.viewTransaction = function (index) {
         <thead style="text-align: left;">
         <tr>
             <th style="width:50%">Item</th>
-            <th style="width:20%">Qty</th>
-            <th style="width:30%">Price</th>
+            <th style="width:15%">Qty</th>
+            <th style="width:35%">Price</th>
         </tr>
         </thead>
         <tbody>
@@ -2318,10 +2319,10 @@ $.fn.viewTransaction = function (index) {
         ${tax_row}
     
         <tr>
-            <td><h5>Total</h5></td>
-            <td><h5>:</h5></td>
+            <td><h4>Total</h4></td>
+            <td><h4>:</h4></td>
             <td>
-                <h5>${settings.symbol} ${formatUang(allTransactions[index].total)}</h5>
+                <h4>${settings.symbol} ${formatUang(allTransactions[index].total)}</h>
             </td>
         </tr>
         ${payment == 0 ? '' : payment}
